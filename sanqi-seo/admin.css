@@ -1,0 +1,1120 @@
+/**
+ * SQ SEO Toolkit - 后台视觉方案 v2.1.0（UI 2.0 设计系统落地版）
+ * 设计关键词：玻璃拟态 / 8pt 网格 / 三级海拔 / 单强调色纪律 / WCAG AA
+ * 作用域：所有规则限定在 .sqseo-admin（自有页面容器）与 .sqseo-mb（文章编辑框）内，
+ *        不覆盖 .wrap、#wpbody 等 WordPress 全局选择器；无外部 UI 框架依赖。
+ */
+
+/* =========================================================
+ * 一、设计令牌（Design Tokens）
+ * 优先消费 WordPress 管理主题变量，缺失时回退到本插件默认值
+ * ======================================================= */
+.sqseo-admin,
+.sqseo-mb {
+	/* 强调色：只允许出现在主按钮、开关选中态、聚焦环、激活芯片、版本徽标 5 处 */
+	--sqseo-accent: var(--wp-admin-theme-color, #3858e9);
+	--sqseo-accent-hover: color-mix(in srgb, var(--sqseo-accent) 86%, #000);
+	--sqseo-accent-soft: color-mix(in srgb, var(--sqseo-accent) 10%, transparent);
+
+	/* 语义色（状态只用 12% 淡底徽标呈现，不大面积渲染情绪） */
+	--sqseo-ok: #15803d;
+	--sqseo-warn: #b45309;
+	--sqseo-err: #dc2626;
+
+	/* 表面与描边（WPDS token 优先） */
+	--sqseo-surface: var(--wpds-color-bg-surface, #ffffff);
+	--sqseo-stroke: var(--wpds-color-stroke-surface-neutral, rgba(15, 23, 42, 0.12));
+	--sqseo-stroke-strong: rgba(15, 23, 42, 0.22);
+	--sqseo-focus: var(--wpds-color-stroke-focus-brand, #3858e9);
+	--sqseo-text: #1d2327;
+	--sqseo-text-soft: #646970;
+	--sqseo-text-faint: #8c8f94;
+
+	/* 字体 */
+	--sqseo-font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+	--sqseo-mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+
+	/* 海拔阴影：e1 徽标级 / e2 卡片默认 / e3 悬浮加深 */
+	--sqseo-e1: 0 1px 2px rgba(15, 23, 42, 0.06);
+	--sqseo-e2: 0 1px 2px rgba(15, 23, 42, 0.05), 0 8px 24px -12px rgba(15, 23, 42, 0.16);
+	--sqseo-e3: 0 2px 4px rgba(15, 23, 42, 0.07), 0 18px 44px -14px rgba(15, 23, 42, 0.26);
+
+	/* 玻璃拟态：62% 半透明 + 16px 模糊 + 1.4 饱和（背景透出越多玻璃感越强） */
+	--sqseo-glass-alpha: 62%;
+	--sqseo-glass-sheen: rgba(255, 255, 255, 0.5);
+
+	/* 8pt 间距网格：4 / 8 / 12 / 16 / 24 / 32 / 48 */
+	--sqseo-s1: 4px;
+	--sqseo-s2: 8px;
+	--sqseo-s3: 12px;
+	--sqseo-s4: 16px;
+	--sqseo-s6: 24px;
+	--sqseo-s8: 32px;
+	--sqseo-s12: 48px;
+
+	/* 流体段落间距与圆角（四角半径微差，保留有机感） */
+	--sqseo-gap-lg: clamp(20px, 3.2vh, 42px);
+	--sqseo-gap-md: clamp(16px, 2vw, 28px);
+	--sqseo-r-sm: 8px;
+	--sqseo-r-md: 12px;
+	--sqseo-r-lg: 16px;
+	--sqseo-radius: 14px 18px 16px 20px;
+	--sqseo-radius-sm: 9px 11px 10px 12px;
+	--sqseo-r-pill: 999px;
+
+	color-scheme: light;
+}
+
+/* 深色管理主题适配（midnight / night / coffee / ectoplasm） */
+body.admin-color-midnight .sqseo-admin, body.admin-color-midnight .sqseo-mb,
+body.admin-color-night .sqseo-admin, body.admin-color-night .sqseo-mb,
+body.admin-color-coffee .sqseo-admin, body.admin-color-coffee .sqseo-mb,
+body.admin-color-ectoplasm .sqseo-admin, body.admin-color-ectoplasm .sqseo-mb {
+	--sqseo-surface: #262c30;
+	--sqseo-stroke: rgba(255, 255, 255, 0.12);
+	--sqseo-stroke-strong: rgba(255, 255, 255, 0.24);
+	--sqseo-text: #e6e8ea;
+	--sqseo-text-soft: #a7aaad;
+	--sqseo-text-faint: #787c82;
+	--sqseo-e1: 0 1px 2px rgba(0, 0, 0, 0.4);
+	--sqseo-e2: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+	--sqseo-e3: 0 2px 4px rgba(0, 0, 0, 0.45), 0 18px 44px -14px rgba(0, 0, 0, 0.65);
+	--sqseo-glass-alpha: 66%;
+	--sqseo-glass-sheen: rgba(255, 255, 255, 0.07);
+	color-scheme: dark;
+}
+
+/* =========================================================
+ * 二、页面骨架：流体有机布局
+ * 直接子元素之间用 row-gap 呼吸，不对称的内容宽度制造节奏
+ * ======================================================= */
+.sqseo-admin {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	row-gap: var(--sqseo-gap-lg);
+	color: var(--sqseo-text);
+}
+
+/* 头部：logo + 标题行 + 版本徽标 */
+.sqseo-admin .sqseo-header {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px 14px;
+}
+
+.sqseo-admin .sqseo-logo {
+	flex: 0 0 auto;
+	border-radius: 6px;
+	box-shadow: var(--sqseo-e1);
+}
+
+.sqseo-admin .sqseo-version {
+	font-size: 12px;
+	line-height: 1;
+	padding: 5px 10px;
+	border-radius: 999px;
+	color: var(--sqseo-text-soft);
+	border: 1px solid var(--sqseo-stroke);
+	background: var(--sqseo-accent-soft);
+	letter-spacing: 0.02em;
+}
+
+/* 玻璃拟态卡片（基类）：顶部 1px 高光边模拟玻璃厚度，斜向光晕模拟反光 */
+.sqseo-admin .sqseo-card {
+	background: color-mix(in srgb, var(--sqseo-surface) 94%, transparent);
+	border: 1px solid var(--sqseo-stroke);
+	border-radius: var(--sqseo-radius);
+	box-shadow: var(--sqseo-e2), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+	background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 42%);
+}
+
+/* 支持 backdrop-filter 时启用真正的玻璃（62% 半透明 + 16px 模糊 + 提饱和） */
+@supports (backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px)) {
+	.sqseo-admin .sqseo-card,
+	.sqseo-admin table.form-table,
+	.sqseo-admin table.widefat {
+		background: color-mix(in srgb, var(--sqseo-surface) var(--sqseo-glass-alpha), transparent);
+		background-image: linear-gradient(135deg, var(--sqseo-glass-sheen), rgba(255, 255, 255, 0) 42%);
+		-webkit-backdrop-filter: blur(16px) saturate(1.4);
+		backdrop-filter: blur(16px) saturate(1.4);
+	}
+
+	/* 顶部 1px 高光边：模拟玻璃厚度 */
+	.sqseo-admin .sqseo-card,
+	.sqseo-admin table.form-table,
+	.sqseo-admin table.widefat {
+		box-shadow: var(--sqseo-e2), inset 0 1px 0 var(--sqseo-glass-sheen);
+	}
+}
+
+/* 用法说明卡：窄一档，与表单区形成不对称呼吸 */
+.sqseo-admin .sqseo-intro {
+	max-width: 56rem;
+	padding: 18px 26px 20px 22px;
+	font-size: 13px;
+	line-height: 1.8;
+	color: var(--sqseo-text-soft);
+}
+
+.sqseo-admin .sqseo-intro b {
+	color: var(--sqseo-text);
+}
+
+/* 表单区：纵向 flex，用 gap 替代 margin 制造段落间距 */
+.sqseo-admin form {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sqseo-gap-md);
+	align-items: flex-start;
+	max-width: 62rem;
+}
+
+/* 分组标题：中性小标签，不占用强调色 */
+.sqseo-admin h2.title {
+	margin: 0;
+	font-size: 12px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: var(--sqseo-text-soft);
+}
+
+/* =========================================================
+ * 三、表单玻璃面板
+ * ======================================================= */
+.sqseo-admin table.form-table {
+	width: 100%;
+	margin: 0;
+	border: 1px solid var(--sqseo-stroke);
+	border-radius: var(--sqseo-radius);
+	box-shadow: var(--sqseo-e2);
+	color: var(--sqseo-text);
+}
+
+.sqseo-admin .form-table th {
+	color: var(--sqseo-text);
+	font-weight: 600;
+	width: 190px;
+	padding: 20px 10px 20px 26px;
+	vertical-align: top;
+}
+
+.sqseo-admin .form-table td {
+	padding: 20px 26px 20px 10px;
+}
+
+.sqseo-admin .form-table p.description {
+	color: var(--sqseo-text-soft);
+	margin-top: 6px;
+	max-width: 46rem;
+	line-height: 1.7;
+}
+
+.sqseo-admin .form-table code {
+	border-radius: 6px;
+	background: color-mix(in srgb, var(--sqseo-text) 7%, transparent);
+	border: 0;
+	padding: 2px 7px;
+}
+
+/* 提示文字（语义色，中性克制） */
+.sqseo-admin .sqseo-text-ok { color: var(--sqseo-ok); }
+.sqseo-admin .sqseo-text-warn { color: var(--sqseo-warn); }
+
+/* 分类芯片：容器用 flex-wrap + gap，取代固定 margin */
+.sqseo-admin .sqseo-chip-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 10px 16px;
+	max-width: 46rem;
+}
+
+.sqseo-admin .sqseo-chip {
+	display: inline-flex;
+	align-items: center;
+	padding: 7px 14px 7px 10px;
+	border: 1px solid var(--sqseo-stroke);
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--sqseo-surface) 85%, transparent);
+	font-size: 13px;
+	line-height: 1.4;
+	cursor: pointer;
+}
+
+/* =========================================================
+ * 四、控件：输入框 / 开关 / 按钮
+ * ======================================================= */
+.sqseo-admin input[type="text"],
+.sqseo-admin input[type="url"],
+.sqseo-admin textarea {
+	border: 1px solid var(--sqseo-stroke);
+	border-radius: var(--sqseo-radius-sm);
+	background: color-mix(in srgb, var(--sqseo-surface) 85%, transparent);
+	color: var(--sqseo-text);
+	box-shadow: none;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sqseo-admin input[type="text"]:focus,
+.sqseo-admin input[type="url"]:focus,
+.sqseo-admin textarea:focus {
+	border-color: var(--sqseo-focus);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--sqseo-focus) 22%, transparent);
+	outline: none;
+}
+
+/* 复选框 → 胶囊开关
+   滑块（白点）直接用 background 渐变画在开关本体上，不用 ::before——
+   WP 后台对 checkbox 伪元素自带 content/margin/line-height 干扰，背景方案可完全绕开 */
+.sqseo-admin input[type="checkbox"] {
+	appearance: none;
+	-webkit-appearance: none;
+	box-sizing: border-box;
+	width: 40px;
+	height: 22px;
+	flex: 0 0 auto;
+	margin: 0 8px 0 0;
+	padding: 0;
+	border-radius: 999px;
+	border: 1px solid var(--sqseo-stroke);
+	/* 胶囊底色 */
+	background-color: color-mix(in srgb, var(--sqseo-text) 18%, transparent);
+	/* 滑块：16px 白色圆点，画在 16×16 的背景瓦片里，通过 background-position 左右移动 */
+	background-image: radial-gradient(circle, #fff 8px, transparent 8.5px);
+	background-size: 16px 16px;
+	background-repeat: no-repeat;
+	background-position: 3px center;
+	cursor: pointer;
+	vertical-align: middle;
+	transition: background-color 0.15s ease, border-color 0.15s ease, background-position 0.15s ease;
+}
+
+.sqseo-admin input[type="checkbox"]:checked {
+	background-color: var(--sqseo-accent);
+	border-color: var(--sqseo-accent);
+	background-position: 21px center;
+}
+
+/* 主操作按钮：强调色唯一大面积使用者 */
+.sqseo-admin .button-primary {
+	border-radius: 10px;
+	border: 1px solid color-mix(in srgb, var(--sqseo-accent) 80%, #000 8%);
+	background: var(--sqseo-accent);
+	text-shadow: none;
+	box-shadow: 0 1px 2px rgba(15, 23, 42, 0.2);
+}
+
+.sqseo-admin .button-primary:focus-visible,
+.sqseo-admin .button:focus-visible {
+	outline: 2px solid var(--sqseo-focus);
+	outline-offset: 2px;
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--sqseo-focus) 25%, transparent);
+}
+
+/* 次级按钮：ghost 样式（清空记录 / 手动补推等所有非主按钮） */
+.sqseo-admin .button:not(.button-primary) {
+	border-radius: var(--sqseo-r-sm);
+	border: 1px solid var(--sqseo-stroke-strong);
+	background: var(--sqseo-surface);
+	color: var(--sqseo-text);
+	box-shadow: var(--sqseo-e1);
+	text-shadow: none;
+	vertical-align: middle;
+}
+
+.sqseo-admin .button:not(.button-primary):hover {
+	border-color: var(--sqseo-accent);
+	color: var(--sqseo-accent);
+	background: var(--sqseo-surface);
+}
+
+.sqseo-admin .button:not(.button-primary):focus-visible {
+	outline: 2px solid var(--sqseo-focus);
+	outline-offset: 2px;
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--sqseo-focus) 25%, transparent);
+}
+
+/* 小号按钮（清空记录 / 手动补推）：保持可读的触控目标 */
+.sqseo-admin .button.button-small:not(.button-primary) {
+	font-size: 12.5px;
+	padding: 4px 14px;
+	min-height: 30px;
+	line-height: 1.6;
+}
+
+/* 保存按钮行 */
+.sqseo-admin .sqseo-actions {
+	margin: 0;
+}
+
+/* =========================================================
+ * 五、推送日志页
+ * ======================================================= */
+.sqseo-admin .sqseo-status-table {
+	max-width: 46rem;
+	border: 1px solid var(--sqseo-stroke);
+	border-radius: var(--sqseo-radius);
+	box-shadow: var(--sqseo-e2);
+}
+
+.sqseo-admin table.widefat {
+	background: color-mix(in srgb, var(--sqseo-surface) 92%, transparent);
+	border: 1px solid var(--sqseo-stroke);
+	border-radius: var(--sqseo-radius);
+	box-shadow: var(--sqseo-e2);
+	overflow: hidden;
+	border-spacing: 0;
+}
+
+.sqseo-admin .widefat.striped tbody tr:nth-child(odd) {
+	background: color-mix(in srgb, var(--sqseo-text) 4%, transparent);
+}
+
+.sqseo-admin .widefat td,
+.sqseo-admin .widefat th {
+	color: var(--sqseo-text);
+}
+
+.sqseo-admin .sqseo-status--ok { color: var(--sqseo-ok); font-weight: 600; }
+.sqseo-admin .sqseo-status--off { color: var(--sqseo-text-soft); }
+
+.sqseo-admin .sqseo-code {
+	word-break: break-all;
+	background: color-mix(in srgb, var(--sqseo-text) 7%, transparent);
+	border: 0;
+	border-radius: 6px;
+	padding: 2px 7px;
+}
+
+.sqseo-admin .sqseo-col-time { width: 130px; }
+.sqseo-admin .sqseo-col-result { width: 34%; }
+.sqseo-admin .sqseo-col-op { width: 110px; }
+.sqseo-admin .sqseo-col-name { width: 140px; }
+
+/* =========================================================
+ * 五点五、UI 2.0 新组件：徽标 / 体检进度条 / 提示条 / 行悬浮
+ * ======================================================= */
+
+/* 状态徽标：12% 淡底 + 语义色文字，情绪克制 */
+.sqseo-admin .sqseo-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1;
+	padding: 3px 10px;
+	border-radius: var(--sqseo-r-pill);
+	white-space: nowrap;
+}
+.sqseo-admin .sqseo-badge--ok   { background: color-mix(in srgb, var(--sqseo-ok) 12%, transparent);   color: var(--sqseo-ok); }
+.sqseo-admin .sqseo-badge--warn { background: color-mix(in srgb, var(--sqseo-warn) 12%, transparent); color: var(--sqseo-warn); }
+.sqseo-admin .sqseo-badge--err  { background: color-mix(in srgb, var(--sqseo-err) 12%, transparent);  color: var(--sqseo-err); }
+.sqseo-admin .sqseo-badge--off  { background: color-mix(in srgb, var(--sqseo-text) 12%, transparent); color: var(--sqseo-text-faint); }
+
+/* GEO 体检行：名称 + 进度条 + 说明 + 徽标 */
+.sqseo-admin .sqseo-health {
+	max-width: 46rem;
+	padding: var(--sqseo-s3) var(--sqseo-s6);
+}
+.sqseo-admin .sqseo-health-row {
+	display: flex;
+	align-items: center;
+	gap: var(--sqseo-s3);
+	padding: var(--sqseo-s3) 0;
+	border-bottom: 1px dashed var(--sqseo-stroke);
+}
+.sqseo-admin .sqseo-health-row:last-child { border-bottom: none; }
+.sqseo-admin .sqseo-health-row .sqseo-health-name {
+	flex: 0 0 auto;
+	width: 118px;
+	font-weight: 600;
+	font-size: 13px;
+	color: var(--sqseo-text);
+}
+.sqseo-admin .sqseo-health-row .sqseo-meter {
+	flex: 0 0 120px;
+	height: 6px;
+	border-radius: 3px;
+	background: color-mix(in srgb, var(--sqseo-text) 15%, transparent);
+	overflow: hidden;
+}
+.sqseo-admin .sqseo-health-row .sqseo-meter i {
+	display: block;
+	height: 100%;
+	border-radius: 3px;
+	background: var(--sqseo-accent);
+}
+.sqseo-admin .sqseo-health-row .sqseo-health-desc {
+	flex: 1;
+	font-size: 12.5px;
+	color: var(--sqseo-text-soft);
+	line-height: 1.6;
+}
+
+/* 信息提示条（替代部分 notice 场景的自定义样式） */
+.sqseo-admin .sqseo-notice {
+	display: flex;
+	gap: 10px;
+	align-items: flex-start;
+	border-radius: var(--sqseo-r-md);
+	padding: var(--sqseo-s3) var(--sqseo-s4);
+	font-size: 13px;
+	margin: 0;
+	border: 1px solid;
+}
+.sqseo-admin .sqseo-notice--ok {
+	background: color-mix(in srgb, var(--sqseo-ok) 8%, transparent);
+	border-color: color-mix(in srgb, var(--sqseo-ok) 25%, transparent);
+	color: var(--sqseo-ok);
+}
+.sqseo-admin .sqseo-notice--info {
+	background: var(--sqseo-accent-soft);
+	border-color: color-mix(in srgb, var(--sqseo-accent) 25%, transparent);
+	color: var(--sqseo-accent);
+}
+
+/* 表格行悬浮：轻量强调底色（替代呆板的条纹高亮补充） */
+.sqseo-admin table.widefat tbody tr {
+	transition: background 150ms ease;
+}
+
+/* =========================================================
+ * 六、文章编辑框（.sqseo-mb，作用于文章编辑页的 metabox）
+ * ======================================================= */
+.sqseo-mb label {
+	display: block;
+	font-weight: 600;
+	margin: 12px 0 4px;
+	color: var(--sqseo-text);
+}
+
+.sqseo-mb input[type="text"],
+.sqseo-mb textarea {
+	width: 100%;
+	border: 1px solid var(--sqseo-stroke);
+	border-radius: var(--sqseo-radius-sm);
+	background: color-mix(in srgb, var(--sqseo-surface) 85%, transparent);
+	color: var(--sqseo-text);
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sqseo-mb input[type="text"]:focus,
+.sqseo-mb textarea:focus {
+	border-color: var(--sqseo-focus);
+	box-shadow: 0 0 0 3px color-mix(in srgb, var(--sqseo-focus) 22%, transparent);
+	outline: none;
+}
+
+.sqseo-mb .desc {
+	color: var(--sqseo-text-soft);
+	font-size: 12px;
+	margin: 2px 0 0;
+	line-height: 1.7;
+}
+
+/* =========================================================
+ * 七、微交互与空间深度（动效全部包裹在 reduced-motion 门控内）
+ * ======================================================= */
+@media (prefers-reduced-motion: no-preference) {
+
+	/* 卡片悬浮：上移 1px + 阴影加深一档，150ms ease */
+	.sqseo-admin .sqseo-card,
+	.sqseo-admin table.form-table,
+	.sqseo-admin table.widefat {
+		transition: transform 150ms ease, box-shadow 150ms ease;
+	}
+
+	.sqseo-admin .sqseo-intro:hover,
+	.sqseo-admin .sqseo-status-table:hover {
+		transform: translateY(-1px);
+		box-shadow: var(--sqseo-e3);
+	}
+
+	.sqseo-admin .button-primary {
+		transition: transform 150ms ease, box-shadow 150ms ease, background 150ms ease;
+	}
+
+	.sqseo-admin .button-primary:hover {
+		transform: translateY(-1px);
+		box-shadow: 0 4px 12px -2px color-mix(in srgb, var(--sqseo-accent) 45%, transparent);
+	}
+
+	.sqseo-admin .button-primary:active {
+		transform: translateY(0);
+		box-shadow: 0 1px 2px rgba(15, 23, 42, 0.2);
+	}
+
+	/* 开关滑块动效（背景定位位移） */
+	.sqseo-admin input[type="checkbox"] {
+		transition-property: background-color, border-color, background-position;
+	}
+
+	/* 芯片悬浮微反馈 */
+	.sqseo-admin .sqseo-chip {
+		transition: background 150ms ease, border-color 150ms ease;
+	}
+
+	.sqseo-admin .sqseo-chip:hover {
+		background: var(--sqseo-accent-soft);
+	}
+}
+
+/* =========================================================
+ * 八、UI 2.2 增强组件：Toast / 危险按钮 / 空状态 / 复制 / 统计卡 / 分布条 / 引导卡
+ * ======================================================= */
+
+/* —— Toast：右下角滑入，玻璃质感，4.5s 自动消失（JS），无 JS 静态可见 —— */
+.sqseo-admin .sqseo-toast {
+	position: fixed;
+	right: 24px;
+	bottom: 24px;
+	z-index: 99990;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	max-width: min(440px, calc(100vw - 48px));
+	padding: 14px 16px 14px 14px;
+	border: 1px solid color-mix(in srgb, var(--sqseo-ok) 45%, transparent);
+	border-left: 4px solid var(--sqseo-ok);
+	border-radius: var(--sqseo-r-md);
+	background: color-mix(in srgb, var(--sqseo-surface) 94%, transparent);
+	-webkit-backdrop-filter: blur(14px) saturate(1.3);
+	backdrop-filter: blur(14px) saturate(1.3);
+	box-shadow:
+		0 6px 28px color-mix(in srgb, var(--sqseo-ok) 22%, transparent),
+		0 4px 16px rgba(0, 0, 0, 0.12),
+		inset 0 1px 0 var(--sqseo-glass-sheen);
+	color: var(--sqseo-text);
+	font-size: 13.5px;
+	line-height: 1.6;
+}
+
+.sqseo-admin .sqseo-toast-icon {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 26px;
+	height: 26px;
+	border-radius: 50%;
+	background: var(--sqseo-ok);
+	color: #fff;
+	font-size: 15px;
+	font-weight: 700;
+	box-shadow: 0 0 0 4px color-mix(in srgb, var(--sqseo-ok) 18%, transparent);
+}
+
+.sqseo-admin .sqseo-toast-body {
+	flex: 1;
+	min-width: 0;
+}
+
+.sqseo-admin .sqseo-toast-body b {
+	color: var(--sqseo-ok);
+	font-size: 14px;
+}
+
+.sqseo-admin .sqseo-toast-close {
+	flex: 0 0 auto;
+	border: 0;
+	background: transparent;
+	color: var(--sqseo-text-faint);
+	font-size: 18px;
+	line-height: 1;
+	padding: 2px 6px;
+	border-radius: 6px;
+	cursor: pointer;
+}
+
+.sqseo-admin .sqseo-toast-close:hover {
+	color: var(--sqseo-text);
+	background: color-mix(in srgb, var(--sqseo-text) 8%, transparent);
+}
+
+.sqseo-admin .sqseo-toast--inline {
+	position: static;
+	display: inline-flex;
+	max-width: min(520px, 100%);
+	margin: 0 0 0 12px;
+	vertical-align: middle;
+}
+
+/* Toast 进场（右下弹入）与退场（下沉淡出） */
+.sqseo-admin .sqseo-toast--hide {
+	opacity: 0;
+	transform: translateY(8px) scale(0.97);
+	transition: opacity 240ms ease, transform 240ms ease;
+	pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	@keyframes sqseo-toast-in {
+		from { opacity: 0; transform: translateY(16px) scale(0.95); }
+		to   { opacity: 1; transform: translateY(0) scale(1); }
+	}
+	.sqseo-admin .sqseo-toast {
+		animation: sqseo-toast-in 340ms cubic-bezier(0.34, 1.45, 0.64, 1) backwards;
+	}
+	.sqseo-admin .sqseo-toast--hide {
+		transform: translateY(10px) scale(0.96);
+	}
+}
+
+/* —— 危险操作按钮：红描边 ghost，悬浮红底白字 —— */
+.sqseo-admin .sqseo-btn-danger {
+	border-color: color-mix(in srgb, var(--sqseo-err) 45%, transparent) !important;
+	color: var(--sqseo-err) !important;
+}
+
+.sqseo-admin .sqseo-btn-danger:hover {
+	background: color-mix(in srgb, var(--sqseo-err) 10%, transparent) !important;
+	border-color: var(--sqseo-err) !important;
+	color: var(--sqseo-err) !important;
+}
+
+/* —— 空状态：居中插画式卡片（与上方表格同宽通栏，不再错位） —— */
+.sqseo-admin .sqseo-empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 6px;
+	text-align: center;
+	padding: 36px 24px;
+	border: 1px dashed var(--sqseo-stroke-strong);
+	border-radius: var(--sqseo-radius);
+	background: color-mix(in srgb, var(--sqseo-surface) 55%, transparent);
+}
+
+.sqseo-admin .sqseo-empty-icon {
+	font-size: 30px;
+	line-height: 1;
+}
+
+.sqseo-admin .sqseo-empty-title {
+	margin: 0;
+	font-weight: 600;
+	font-size: 14px;
+	color: var(--sqseo-text);
+}
+
+.sqseo-admin .sqseo-empty-desc {
+	margin: 0;
+	font-size: 12.5px;
+	color: var(--sqseo-text-soft);
+	max-width: 34rem;
+	line-height: 1.7;
+}
+
+/* —— 一键复制小按钮 —— */
+.sqseo-admin .sqseo-copy {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	margin-left: 6px;
+	padding: 2px 10px;
+	border: 1px solid var(--sqseo-stroke-strong);
+	border-radius: var(--sqseo-r-pill);
+	background: var(--sqseo-surface);
+	color: var(--sqseo-text-soft);
+	font-size: 12px;
+	line-height: 1.6;
+	cursor: pointer;
+	vertical-align: middle;
+}
+
+.sqseo-admin .sqseo-copy:hover {
+	border-color: var(--sqseo-accent);
+	color: var(--sqseo-accent);
+}
+
+.sqseo-admin .sqseo-copy:focus-visible {
+	outline: 2px solid var(--sqseo-focus);
+	outline-offset: 2px;
+}
+
+.sqseo-admin .sqseo-copy--done {
+	border-color: color-mix(in srgb, var(--sqseo-ok) 45%, transparent);
+	color: var(--sqseo-ok);
+}
+
+/* —— 统计迷你卡（推送日志页） —— */
+.sqseo-admin .sqseo-stats {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	gap: var(--sqseo-s3);
+	max-width: 46rem;
+}
+
+.sqseo-admin .sqseo-stat {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: var(--sqseo-s3) var(--sqseo-s4);
+	border: 1px solid var(--sqseo-stroke);
+	border-radius: var(--sqseo-r-md);
+	background: color-mix(in srgb, var(--sqseo-surface) 80%, transparent);
+	box-shadow: var(--sqseo-e1);
+}
+
+.sqseo-admin .sqseo-stat-num {
+	font-size: 26px;
+	font-weight: 700;
+	line-height: 1.2;
+	color: var(--sqseo-text);
+	font-variant-numeric: tabular-nums;
+}
+
+.sqseo-admin .sqseo-stat-num--ok { color: var(--sqseo-ok); }
+.sqseo-admin .sqseo-stat-num--err { color: var(--sqseo-err); }
+
+.sqseo-admin .sqseo-stat-icon {
+	font-size: 20px;
+	line-height: 1.4;
+}
+
+.sqseo-admin .sqseo-stat-label {
+	font-size: 12.5px;
+	font-weight: 600;
+	color: var(--sqseo-text);
+}
+
+.sqseo-admin .sqseo-stat-sub {
+	font-size: 11.5px;
+	color: var(--sqseo-text-faint);
+	line-height: 1.5;
+}
+
+/* —— 蜘蛛来源分布条 —— */
+.sqseo-admin .sqseo-dist {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sqseo-s2);
+	max-width: 46rem;
+}
+
+.sqseo-admin .sqseo-dist-bar {
+	display: flex;
+	height: 10px;
+	border-radius: 5px;
+	overflow: hidden;
+	background: color-mix(in srgb, var(--sqseo-text) 8%, transparent);
+}
+
+.sqseo-admin .sqseo-dist-bar span {
+	display: block;
+	min-width: 3px;
+	transition: width 300ms ease;
+}
+
+.sqseo-admin .sqseo-dist-legend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px 16px;
+}
+
+.sqseo-admin .sqseo-dist-item {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+	color: var(--sqseo-text-soft);
+}
+
+.sqseo-admin .sqseo-dist-item i {
+	width: 9px;
+	height: 9px;
+	border-radius: 3px;
+	display: inline-block;
+}
+
+/* —— 表格精修：玻璃表头 + 等宽时间列 —— */
+.sqseo-admin .widefat thead th {
+	background: color-mix(in srgb, var(--sqseo-text) 6%, transparent);
+	font-size: 11.5px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--sqseo-text-soft);
+	border-bottom: 1px solid var(--sqseo-stroke);
+}
+
+.sqseo-admin .sqseo-mono {
+	font-family: var(--sqseo-mono);
+	font-size: 12px;
+	color: var(--sqseo-text-soft);
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+/* —— 上手引导卡（details 原生折叠，零 JS 依赖） —— */
+.sqseo-admin .sqseo-guide {
+	border: 1px solid color-mix(in srgb, var(--sqseo-accent) 30%, transparent);
+	border-radius: var(--sqseo-r-md);
+	background: var(--sqseo-accent-soft);
+	max-width: 62rem;
+	overflow: hidden;
+}
+
+.sqseo-admin .sqseo-guide summary {
+	cursor: pointer;
+	padding: 12px 16px;
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--sqseo-accent);
+	list-style-position: inside;
+	user-select: none;
+}
+
+.sqseo-admin .sqseo-guide summary:hover {
+	background: color-mix(in srgb, var(--sqseo-accent) 6%, transparent);
+}
+
+.sqseo-admin .sqseo-guide-steps {
+	margin: 0;
+	padding: 4px 16px 14px 34px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	font-size: 13px;
+	line-height: 1.7;
+	color: var(--sqseo-text);
+}
+
+/* —— 窄屏响应式：表单标签列上移 —— */
+@media (max-width: 782px) {
+	.sqseo-admin .form-table th,
+	.sqseo-admin .form-table td {
+		display: block;
+		width: auto;
+		box-sizing: border-box;
+	}
+
+	.sqseo-admin .form-table th {
+		padding: 14px 16px 0;
+	}
+
+	.sqseo-admin .form-table td {
+		padding: 6px 16px 14px;
+	}
+
+	.sqseo-admin .sqseo-toast {
+		right: 12px;
+		left: 12px;
+		bottom: 12px;
+		max-width: none;
+	}
+}
+
+/* —— 卡片进场动画（stagger 淡入上浮，reduced-motion 门控） —— */
+@media (prefers-reduced-motion: no-preference) {
+	@keyframes sqseo-fade-up {
+		from {
+			opacity: 0;
+			transform: translateY(8px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	.sqseo-admin > *:not(.sqseo-toast) {
+		animation: sqseo-fade-up 300ms ease backwards;
+	}
+
+	.sqseo-admin > *:nth-child(1) { animation-delay: 0ms; }
+	.sqseo-admin > *:nth-child(2) { animation-delay: 45ms; }
+	.sqseo-admin > *:nth-child(3) { animation-delay: 90ms; }
+	.sqseo-admin > *:nth-child(4) { animation-delay: 135ms; }
+	.sqseo-admin > *:nth-child(5) { animation-delay: 180ms; }
+	.sqseo-admin > *:nth-child(6) { animation-delay: 225ms; }
+	.sqseo-admin > *:nth-child(7) { animation-delay: 270ms; }
+	.sqseo-admin > *:nth-child(8) { animation-delay: 315ms; }
+	.sqseo-admin > *:nth-child(n + 9) { animation-delay: 340ms; }
+}
+
+/* =========================================================
+ * v2.3 新增：重定向表单 / 文章列表 SEO 列 / 内联输入
+ * ======================================================= */
+
+/* 文章列表 SEO 状态列（列表页无 .sqseo-admin 容器，徽标样式独立定义） */
+.column-sqseo_check {
+	width: 120px;
+}
+
+.wp-list-table .sqseo-badge {
+	display: inline-block;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1.6;
+	padding: 2px 9px;
+	border-radius: 99px;
+	white-space: normal;
+	max-width: 100%;
+	box-sizing: border-box;
+}
+
+.wp-list-table .sqseo-badge--ok   { background: #edf7f0; color: #1a7f4e; }
+.wp-list-table .sqseo-badge--warn { background: #fdf3e3; color: #996a10; }
+.wp-list-table .sqseo-badge--err  { background: #fdeceb; color: #b32d2e; }
+
+body.admin-color-midnight .wp-list-table .sqseo-badge--ok   { background: rgba(46,161,108,.16); color: #6bce9a; }
+body.admin-color-midnight .wp-list-table .sqseo-badge--warn { background: rgba(219,165,10,.16);  color: #e5c35c; }
+body.admin-color-midnight .wp-list-table .sqseo-badge--err  { background: rgba(226,90,82,.18);   color: #f0a39e; }
+
+/* 抓取日志 404 表：一键 301 内联表单 */
+.sqseo-rd-form {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin: 0;
+}
+
+.sqseo-rd-form .sqseo-inline-input {
+	width: 200px;
+	max-width: 100%;
+	min-height: 0;
+	height: 28px;
+	padding: 0 8px;
+	font-size: 12px;
+	border-radius: var(--sqseo-r-sm, 8px);
+}
+
+.sqseo-rd-form .button-small {
+	flex-shrink: 0;
+}
+
+@media (max-width: 782px) {
+	.sqseo-rd-form {
+		flex-wrap: wrap;
+	}
+
+	.sqseo-rd-form .sqseo-inline-input {
+		width: 160px;
+	}
+}
+
+
+/* =========================================================
+ * v2.3.4 排版规范化：面板卡 / 步骤列表 / 行内代码 / 描述文本
+ * 解决：裸卡片无内边距、行内样式硬凑间隙、code 徽片挤压行高
+ * ======================================================= */
+
+/* 面板卡：有内容的卡片统一内边距与内部节奏（配合 .sqseo-card 使用） */
+.sqseo-admin .sqseo-panel {
+	padding: 18px 24px 20px;
+}
+
+/* 面板卡内的分组标题：贴顶但不贴边 */
+.sqseo-admin .sqseo-panel > h2.title:first-child {
+	margin-bottom: 4px;
+}
+
+/* 面板卡内的首个段落：贴顶不留双倍空隙 */
+.sqseo-admin .sqseo-panel > p:first-child {
+	margin-top: 0;
+}
+
+/* 面板内嵌表单表格：去掉边框/阴影/玻璃底，与卡片融为一体，避免双框嵌套 */
+.sqseo-admin .sqseo-panel .form-table {
+	border: 0;
+	box-shadow: none;
+	border-radius: 0;
+	background: transparent;
+	background-image: none;
+	-webkit-backdrop-filter: none;
+	backdrop-filter: none;
+}
+
+/* 面板内表单：标签列收窄（190px 太宽，小表单留白失衡），内边距交给卡片提供 */
+.sqseo-admin .sqseo-panel .form-table th {
+	width: 150px;
+	padding: 14px 10px 14px 0;
+}
+
+.sqseo-admin .sqseo-panel .form-table td {
+	padding: 14px 0;
+}
+
+/* 面板卡内的描述文本：与上方内容留出呼吸 */
+.sqseo-admin .sqseo-panel p.description {
+	margin: 12px 0 0;
+}
+
+/* 步骤列表：引导卡与面板通用（替代行内 style 的 ol） */
+.sqseo-admin ol.sqseo-steps {
+	margin: 0;
+	padding-left: 26px;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	font-size: 13px;
+	line-height: 1.8;
+}
+
+.sqseo-admin ol.sqseo-steps li::marker {
+	color: var(--sqseo-text-faint);
+	font-weight: 600;
+}
+
+.sqseo-admin ol.sqseo-steps code {
+	margin: 0 2px;
+}
+
+/* 所有行内 code：统一字号与行内节奏，不再挤压行高 */
+.sqseo-admin code {
+	font-size: 12px;
+	line-height: 1.5;
+	vertical-align: baseline;
+}
+
+/* 独立描述文本（表格外）：统一颜色与可读行宽 */
+.sqseo-admin p.description {
+	color: var(--sqseo-text-soft);
+	line-height: 1.75;
+	max-width: 62rem;
+}
+
+/* 窄屏：面板内边距收窄 */
+@media (max-width: 782px) {
+	.sqseo-admin .sqseo-panel {
+		padding: 14px 16px 16px;
+	}
+}
+
+/* =========================================================
+ * v2.3.5 折叠长列表：日志只展示最近一段，更早的收进折叠条
+ * ======================================================= */
+.sqseo-admin .sqseo-fold {
+	border: 1px solid var(--sqseo-stroke);
+	border-radius: var(--sqseo-radius);
+	background: color-mix(in srgb, var(--sqseo-surface) 70%, transparent);
+	overflow: hidden;
+}
+
+.sqseo-admin .sqseo-fold > summary {
+	cursor: pointer;
+	padding: 11px 14px;
+	font-size: 12.5px;
+	font-weight: 600;
+	color: var(--sqseo-accent);
+	user-select: none;
+	list-style-position: inside;
+}
+
+.sqseo-admin .sqseo-fold > summary:hover {
+	background: color-mix(in srgb, var(--sqseo-accent) 6%, transparent);
+}
+
+.sqseo-admin .sqseo-fold[open] > summary {
+	border-bottom: 1px solid var(--sqseo-stroke);
+}
+
+.sqseo-admin .sqseo-fold > table {
+	border: 0;
+	border-radius: 0;
+	box-shadow: none;
+}
