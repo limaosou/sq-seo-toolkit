@@ -1,4 +1,4 @@
-# SQ SEO Toolkit（SQ SEO 工具箱）
+# 站优
 
 轻量、全功能的 WordPress SEO 插件：中文后台、免授权、不回传任何数据。一个插件覆盖 TDK、Sitemap、AI 爬虫放行、llms.txt、OG / JSON-LD、百度与神马与 IndexNow 推送、蜘蛛日志、301 重定向、内容体检。
 

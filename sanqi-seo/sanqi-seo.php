@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: SQ SEO Toolkit
+ * Plugin Name: 站优
  * Plugin URI:  https://github.com/limaosou/sq-seo-toolkit
  * Description: 轻量全功能 SEO 工具箱：TDK、Sitemap、robots.txt（AI 爬虫一键放行）、llms.txt、OG 社交卡片、JSON-LD 结构化数据、图片 ALT 补全、百度主动推送、IndexNow、301 重定向、站长平台验证码、内容体检（新鲜度+死链扫描）。无需授权，无外部请求上报。Lightweight all-in-one SEO toolkit.
  * Version:     2.3.8
@@ -91,7 +91,7 @@ function sqseo_opts() {
 add_action( 'admin_menu', 'sqseo_admin_menu' );
 function sqseo_admin_menu() {
 	add_menu_page(
-		'SQ SEO Toolkit',
+		'站优',
 		'SQ SEO',
 		'manage_options',
 		'sanqi-seo',
@@ -117,7 +117,7 @@ function sqseo_admin_menu() {
 		array( '备份 / 迁移', 'sqseo-backup', 'sqseo_page_backup' ),
 	);
 	foreach ( $subs as $s ) {
-		add_submenu_page( 'sanqi-seo', 'SQ SEO Toolkit - ' . $s[0], $s[0], 'manage_options', $s[1], $s[2] );
+		add_submenu_page( 'sanqi-seo', '站优 - ' . $s[0], $s[0], 'manage_options', $s[1], $s[2] );
 	}
 }
 
@@ -230,7 +230,7 @@ function sqseo_page_open( $title, $intro, $keys, $slug ) {
 	<div class="wrap sqseo-admin">
 		<div class="sqseo-header">
 			<?php echo sqseo_logo_svg(); ?>
-			<h1>SQ SEO Toolkit · <?php echo esc_html( $title ); ?></h1>
+			<h1>站优 · <?php echo esc_html( $title ); ?></h1>
 			<span class="sqseo-version">v<?php echo esc_html( SQSEO_VERSION ); ?></span>
 		</div>
 
@@ -1052,7 +1052,7 @@ function sqseo_robots_txt( $output, $public ) {
 		'PerplexityBot', 'Perplexity-User', 'Google-Extended', 'Bytespider', 'Applebot', 'Applebot-Extended',
 		'Meta-ExternalAgent', 'Amazonbot', 'YouBot', 'Diffbot', 'cohere-ai',
 	);
-	$out = "\n# AI 爬虫放行（SQ SEO Toolkit）\n";
+	$out = "\n# AI 爬虫放行（站优）\n";
 	foreach ( $ai_bots as $bot ) {
 		$out .= "User-agent: {$bot}\nAllow: /\n";
 	}
@@ -1482,7 +1482,7 @@ function sqseo_push_log_page() {
 		<div class="sqseo-header">
 			<?php echo sqseo_logo_svg(); ?>
 			<h1>推送日志</h1>
-		<span class="sqseo-version">SQ SEO Toolkit</span>
+		<span class="sqseo-version">站优</span>
 		</div>
 
 		<?php if ( $pushed ) : ?>
@@ -1763,7 +1763,7 @@ function sqseo_crawl_log_page() {
 		<div class="sqseo-header">
 			<?php echo sqseo_logo_svg(); ?>
 			<h1>抓取日志</h1>
-			<span class="sqseo-version">SQ SEO Toolkit</span>
+			<span class="sqseo-version">站优</span>
 		</div>
 
 		<?php if ( $updated ) : ?>
@@ -2145,7 +2145,7 @@ function sqseo_page_htmlmap() {
 	?>
 	<div class="wrap sqseo-admin">
 		<div class="sqseo-header">
-			<h1>SQ SEO Toolkit · HTML 地图</h1>
+			<h1>站优 · HTML 地图</h1>
 			<span class="sqseo-version">v<?php echo esc_html( SQSEO_VERSION ); ?></span>
 		</div>
 
@@ -2519,7 +2519,7 @@ function sqseo_page_redirect() {
 		<div class="sqseo-header">
 			<?php echo sqseo_logo_svg(); ?>
 			<h1>301 重定向</h1>
-			<span class="sqseo-version">SQ SEO Toolkit</span>
+			<span class="sqseo-version">站优</span>
 		</div>
 
 		<?php if ( $added ) : ?>
@@ -2670,7 +2670,7 @@ function sqseo_page_content_check() {
 		<div class="sqseo-header">
 			<?php echo sqseo_logo_svg(); ?>
 			<h1>内容体检</h1>
-			<span class="sqseo-version">SQ SEO Toolkit</span>
+			<span class="sqseo-version">站优</span>
 		</div>
 
 		<?php if ( ! empty( $_GET['sqseo_updated'] ) ) : ?>
@@ -2904,7 +2904,7 @@ function sqseo_page_backup() {
 		<div class="sqseo-header">
 			<?php echo sqseo_logo_svg(); ?>
 			<h1>备份 / 迁移</h1>
-			<span class="sqseo-version">SQ SEO Toolkit</span>
+			<span class="sqseo-version">站优</span>
 		</div>
 
 		<?php if ( isset( $_GET['sqseo_imported'] ) ) : ?>

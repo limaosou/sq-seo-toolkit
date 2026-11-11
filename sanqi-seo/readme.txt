@@ -1,4 +1,4 @@
-=== SQ SEO Toolkit ===
+=== 站优 ===
 Contributors: 狸猫
 Tags: seo, sitemap, llms.txt, json-ld, geo, baidu, indexnow, 中文
 Requires at least: 5.0
